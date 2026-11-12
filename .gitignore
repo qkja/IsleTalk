@@ -1,0 +1,28 @@
+# OS / editor noise
+.DS_Store
+Thumbs.db
+*.swp
+.idea/
+.vscode/
+
+# Build output
+dist/
+build/
+bin/
+target/
+
+# Dependencies
+node_modules/
+vendor/
+
+# Local environment / secrets — MUST NOT be committed
+.env
+.env.*
+*.local
+
+# OS / tool caches
+__pycache__/
+*.pyc
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
