@@ -15,7 +15,7 @@ jobs:
     name: 治理校验
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - uses: actions/setup-python@v5
         with:
@@ -28,7 +28,7 @@ jobs:
     name: 密钥扫描
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           fetch-depth: 0
 
@@ -45,6 +45,6 @@ jobs:
   #   name: 语言相关门禁
   #   runs-on: ubuntu-latest
   #   steps:
-  #     - uses: actions/checkout@v4
+  #     - uses: actions/checkout@v7
   #     - run: <该语言的格式化 / 静态检查 / 类型检查 / 测试 / 覆盖率命令>
   #     - run: <依赖方向检查工具>
