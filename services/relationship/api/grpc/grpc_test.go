@@ -49,6 +49,13 @@ func TestHandlerInvalidUserID(t *testing.T) {
 		t.Fatalf("empty owner should be InvalidArgument, got %v", err)
 	}
 
+	if _, err := srv.RespondToFriendRequest(context.Background(), &relationshipv1.RespondFriendRequest{
+		InitiatorId: &identityv1.UserId{Value: ""},
+		TargetId:    &identityv1.UserId{Value: "b"},
+	}); status.Code(err) != codes.InvalidArgument {
+		t.Fatalf("empty initiator should be InvalidArgument, got %v", err)
+	}
+
 	if _, err := srv.CanMessage(context.Background(), &relationshipv1.CanMessageRequest{
 		SenderId:    &identityv1.UserId{Value: ""},
 		RecipientId: &identityv1.UserId{Value: "b"},

@@ -11,4 +11,5 @@ var (
 	ErrAlreadyFriends      = errors.New("already friends")
 	ErrBlocked             = errors.New("blocked")
 	ErrRateLimited         = errors.New("rate limited")
+	ErrRequestExpired      = errors.New("friend request expired")
 )

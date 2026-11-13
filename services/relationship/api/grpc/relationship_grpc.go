@@ -95,11 +95,14 @@ func (s *RelationshipGRPCServer) CanMessage(ctx context.Context, req *relationsh
 	if err != nil {
 		return nil, status.Error(codes.InvalidArgument, err.Error())
 	}
-	allowed, err := s.canMessage.CanMessage(ctx, sender, recipient)
+	allowed, blocked, err := s.canMessage.CanMessage(ctx, sender, recipient)
 	if err != nil {
 		return nil, grpcErr(err)
 	}
-	st := relationshipv1.FriendshipStatus_FRIENDSHIP_STATUS_BLOCKED
+	st := relationshipv1.FriendshipStatus_FRIENDSHIP_STATUS_PENDING // 非好友
+	if blocked {
+		st = relationshipv1.FriendshipStatus_FRIENDSHIP_STATUS_BLOCKED
+	}
 	if allowed {
 		st = relationshipv1.FriendshipStatus_FRIENDSHIP_STATUS_ACCEPTED
 	}

@@ -110,3 +110,40 @@ func TestListRequests(t *testing.T) {
 		t.Fatalf("ListHistory = %d, %v, want 0", len(history), err)
 	}
 }
+
+func TestRespondRejectsReverseRequest(t *testing.T) {
+	ctx := context.Background()
+	requests := newMemRequests()
+	friendships := newMemFriendships()
+	svc := NewRespondService(requests, friendships)
+	// 双向申请：A→B 和 B→A 同时存在
+	requests.Create(ctx, entity.NewFriendRequest(mustUID(t, "a"), mustUID(t, "b"), "hi"))
+	requests.Create(ctx, entity.NewFriendRequest(mustUID(t, "b"), mustUID(t, "a"), "hello"))
+
+	// 接受 A→B
+	if _, err := svc.Respond(ctx, mustUID(t, "a"), mustUID(t, "b"), true); err != nil {
+		t.Fatal(err)
+	}
+	// B→A 应自动失效（T042）
+	reverse, _ := requests.Find(ctx, mustUID(t, "b"), mustUID(t, "a"))
+	if reverse.IsPending() {
+		t.Fatal("reverse request should be rejected after accept")
+	}
+}
+
+func TestRespondExpiredRequest(t *testing.T) {
+	ctx := context.Background()
+	requests := newMemRequests()
+	friendships := newMemFriendships()
+	requests.Create(ctx, entity.NewFriendRequest(mustUID(t, "a"), mustUID(t, "b"), "hi"))
+	svc := NewRespondService(requests, friendships)
+
+	// 把过期时长改成一个极小值，任何申请都算过期
+	old := requestExpiry
+	requestExpiry = -1
+	defer func() { requestExpiry = old }()
+
+	if _, err := svc.Respond(ctx, mustUID(t, "a"), mustUID(t, "b"), true); err != ErrRequestExpired {
+		t.Fatalf("err = %v, want ErrRequestExpired (T044)", err)
+	}
+}

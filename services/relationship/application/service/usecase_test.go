@@ -96,6 +96,15 @@ func TestRespondReject(t *testing.T) {
 	}
 }
 
+func TestCanMessageNotFriends(t *testing.T) {
+	ctx := context.Background()
+	csvc := NewCanMessageService(newMemFriendships(), newMemBlocks())
+	allowed, blocked, _ := csvc.CanMessage(ctx, mustUID(t, "a"), mustUID(t, "b"))
+	if allowed || blocked {
+		t.Fatal("non-friends: allowed should be false, blocked should be false (FR-013 区分非好友与被拉黑)")
+	}
+}
+
 func TestCanMessageAllowed(t *testing.T) {
 	ctx := context.Background()
 	requests := newMemRequests()
@@ -113,7 +122,7 @@ func TestCanMessageAllowed(t *testing.T) {
 	if _, err := rsvc.Respond(ctx, mustUID(t, "a"), mustUID(t, "b"), true); err != nil {
 		t.Fatal(err)
 	}
-	allowed, err := csvc.CanMessage(ctx, mustUID(t, "a"), mustUID(t, "b"))
+	allowed, _, err := csvc.CanMessage(ctx, mustUID(t, "a"), mustUID(t, "b"))
 	if err != nil || !allowed {
 		t.Fatalf("CanMessage = %v, %v, want true", allowed, err)
 	}
@@ -141,8 +150,11 @@ func TestCanMessageBlocked(t *testing.T) {
 	if err := bsvc.SetBlock(ctx, mustUID(t, "a"), mustUID(t, "b"), true); err != nil {
 		t.Fatal(err)
 	}
-	allowed, _ := csvc.CanMessage(ctx, mustUID(t, "a"), mustUID(t, "b"))
+	allowed, blocked, _ := csvc.CanMessage(ctx, mustUID(t, "a"), mustUID(t, "b"))
 	if allowed {
 		t.Fatal("CanMessage should be false after block (FR-009)")
+	}
+	if !blocked {
+		t.Fatal("blocked should be true after block (FR-013 原因类别)")
 	}
 }

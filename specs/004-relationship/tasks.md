@@ -184,3 +184,13 @@
 - [X] T039 发申请时检查「是否已是好友」：已是好友 MUST 拒绝再次发申请（返回 `ErrAlreadyFriends`）per FR-003/FR-004 (partial)
 - [X] T040 实现「新的朋友」查询用例：待处理申请列表 + 历史申请列表（`ListPendingByTarget`/`ListHistoryByTarget` 的 application 用例）per FR-011 (missing)
 - [X] T041 拉黑时使既有待处理申请失效：`BlockService.SetBlock(blocked=true)` 时 MUST 撤销对方发来的待处理申请 per Edge Cases (missing)
+
+---
+
+## Phase 8: Convergence
+
+**Purpose**: `/speckit-converge` 二轮收敛——核查双向申请失效、CanMessage 原因类别、申请过期。
+
+- [X] T042 双向申请自动失效：接受 A→B 后，反向 B→A 的待处理申请 MUST 自动失效或合并 per Edge Cases (missing)
+- [X] T043 CanMessage 返回精确原因类别：区分「非好友」与「被拉黑」（返回 FriendshipStatus：NOT_FRIENDS / BLOCKED），而非一律 BLOCKED per FR-013 (partial)
+- [X] T044 实现待处理申请过期机制：超过 30 天的待处理申请 MUST 过期（不可接受，需重新申请）per Assumptions (missing)
