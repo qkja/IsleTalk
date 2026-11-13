@@ -1,0 +1,102 @@
+// Message service: 会话与消息（首段切片，仅 1v1；群聊见后续 group feature）
+// 稳定性：alpha —— 破坏性变更前 MUST 升 v2 并给迁移方案。
+syntax = "proto3";
+
+package isletalk.message.v1;
+
+option go_package = "isletalk/api/message/v1;messagev1";
+
+import "identity/v1/identity.proto";
+
+// 会话类型（首段仅 direct；group 由后续 feature 接入，字段保留但暂不实现）。
+enum ConversationType {
+  CONVERSATION_TYPE_UNSPECIFIED = 0;
+  CONVERSATION_TYPE_DIRECT = 1;  // 1v1 单聊
+  CONVERSATION_TYPE_GROUP = 2;   // 群聊（本切片不实现）
+}
+
+// 消息类型（FR-016/017/018）。
+enum MessageType {
+  MESSAGE_TYPE_UNSPECIFIED = 0;
+  MESSAGE_TYPE_TEXT = 1;
+  MESSAGE_TYPE_IMAGE = 2;
+  MESSAGE_TYPE_FILE = 3;
+}
+
+// 发送状态（FR-019）。
+enum MessageStatus {
+  MESSAGE_STATUS_UNSPECIFIED = 0;
+  MESSAGE_STATUS_SENT = 1;
+  MESSAGE_STATUS_DELIVERED = 2;
+  MESSAGE_STATUS_READ = 3;
+  MESSAGE_STATUS_FAILED = 4;
+}
+
+message Message {
+  string message_id = 1;          // 幂等去重键（FR-028）
+  string conversation_id = 2;
+  identity.v1.UserId sender_id = 3;
+  MessageType type = 4;
+  string content = 5;             // 文本正文或附件对象 key
+  uint64 seq = 6;                 // 会话内单调递增，保证时序（FR-031）
+  int64 sent_at = 7;              // Unix 毫秒
+  MessageStatus status = 8;
+  bool recalled = 9;              // 已撤回（FR-020）
+  string forward_of = 10;         // 转发来源消息 ID（FR-021）
+  string quote_of = 11;           // 引用目标消息 ID（FR-022）
+}
+
+// 发送消息：携带幂等键，服务端按 message_id 去重（FR-028/029）。
+message SendMessageRequest {
+  string message_id = 1;          // 客户端生成的幂等键
+  string conversation_id = 2;
+  identity.v1.UserId sender_id = 3;
+  MessageType type = 4;
+  string content = 5;
+}
+
+message SendMessageResponse {
+  Message message = 1;
+}
+
+// 拉取会话消息（分页，AIP-158）。
+message ListMessagesRequest {
+  string conversation_id = 1;
+  int32 page_size = 2;            // 默认 50，上限 1000
+  string page_token = 3;          // 不透明游标，禁止 offset
+}
+
+message ListMessagesResponse {
+  repeated Message messages = 1;
+  string next_page_token = 2;
+}
+
+// 撤回（FR-020）：窗口由服务端时钟判定（不依赖客户端时间）。
+message RecallMessageRequest {
+  string message_id = 1;
+  identity.v1.UserId sender_id = 2;
+}
+
+message RecallMessageResponse {
+  bool recalled = 1; // false = 超窗或非本人
+}
+
+// 上报阅读位置（FR-083/084）：1v1 精确状态；群聊仅用于汇总计数。
+message MarkReadRequest {
+  string conversation_id = 1;
+  identity.v1.UserId user_id = 2;
+  uint64 last_read_seq = 3;
+}
+
+message MarkReadResponse {}
+
+service MessageService {
+  // 发送消息（幂等）
+  rpc SendMessage(SendMessageRequest) returns (SendMessageResponse);
+  // 分页拉取消息
+  rpc ListMessages(ListMessagesRequest) returns (ListMessagesResponse);
+  // 撤回消息
+  rpc RecallMessage(RecallMessageRequest) returns (RecallMessageResponse);
+  // 上报已读
+  rpc MarkRead(MarkReadRequest) returns (MarkReadResponse);
+}
