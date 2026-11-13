@@ -57,6 +57,67 @@ jobs:
             message:
               - 'services/message/**'
 
+  identity-coverage:
+    name: identity 覆盖率门禁（Go ≥80%）
+    needs: changes
+    if: needs.changes.outputs.identity == 'true'
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: services/identity
+    services:
+      mongo:
+        image: mongo:7.0
+        ports: ['27017:27017']
+        options: >-
+          --health-cmd "mongosh --eval 'db.runCommand({ping:1})'" --health-interval 10s --health-timeout 5s --health-retries 5
+      redis:
+        image: redis:7.2
+        ports: ['6379:6379']
+        options: >-
+          --health-cmd "redis-cli ping" --health-interval 10s --health-timeout 5s --health-retries 5
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-go@v5
+        with:
+          go-version: '1.22'
+      - name: 测试并生成覆盖率
+        run: |
+          go test -coverpkg=./api/grpc/...,./api/http/...,./application/...,./domain/...,./infrastructure/auth/...,./infrastructure/cache/...,./infrastructure/config/...,./infrastructure/persistence/... -coverprofile=coverage.out ./...
+          go tool cover -func=coverage.out | tail -1
+      - name: 覆盖率门禁（≥80%）
+        run: |
+          total=$(go tool cover -func=coverage.out | tail -1 | awk '{print $3}' | tr -d '%')
+          awk -v t="$total" 'BEGIN { if (t < 80) { print "覆盖率未达 80%"; exit 1 } }'
+
+  relationship-coverage:
+    name: relationship 覆盖率门禁（Go ≥80%）
+    needs: changes
+    if: needs.changes.outputs.relationship == 'true'
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: services/relationship
+    services:
+      mongo:
+        image: mongo:7.0
+        ports: ['27017:27017']
+        options: >-
+          --health-cmd "mongosh --eval 'db.runCommand({ping:1})'" --health-interval 10s --health-timeout 5s --health-retries 5
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-go@v5
+        with:
+          go-version: '1.22'
+      - name: 测试并生成覆盖率
+        run: |
+          go test -coverpkg=./api/grpc/...,./api/http/...,./application/...,./domain/... -coverprofile=coverage.out ./...
+          go tool cover -func=coverage.out | tail -1
+      - name: 覆盖率门禁（≥80%）
+        run: |
+          total=$(go tool cover -func=coverage.out | tail -1 | awk '{print $3}' | tr -d '%')
+          awk -v t="$total" 'BEGIN { if (t < 80) { print "覆盖率未达 80%"; exit 1 } }'
+
   message-coverage:
     name: message 覆盖率门禁（Go ≥80%）
     needs: changes
