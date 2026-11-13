@@ -1,0 +1,50 @@
+name: CI
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main, develop]
+
+permissions:
+  contents: read
+  pull-requests: read
+
+jobs:
+  governance:
+    name: 治理校验
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: 校验宪法与规格产物
+        run: python3 .github/scripts/check-governance.py
+
+  secrets:
+    name: 密钥扫描
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: 扫描仓库历史中的密钥
+        uses: gitleaks/gitleaks-action@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  # TODO(TECH_STACK): 以下门禁待第一个服务确定实现语言后补充，
+  # 对应宪法 II（覆盖率 ≥80%）、F 组（依赖方向与跨服务数据访问检查）、
+  # E 组（SAST / SCA / 镜像扫描 / 契约破坏性变更检测）。
+  #
+  # language-gates:
+  #   name: 语言相关门禁
+  #   runs-on: ubuntu-latest
+  #   steps:
+  #     - uses: actions/checkout@v4
+  #     - run: <该语言的格式化 / 静态检查 / 类型检查 / 测试 / 覆盖率命令>
+  #     - run: <依赖方向检查工具>
