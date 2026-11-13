@@ -43,6 +43,7 @@ VERSION_LINE = re.compile(
     re.MULTILINE,
 )
 PLACEHOLDER = re.compile(r"\[([A-Z][A-Z0-9_]{2,})\]")
+TASK_ENTRY = re.compile(r"^\s*-\s*\[[ xX]\]\s+\S", re.MULTILINE)
 
 failures: list[str] = []
 
@@ -102,7 +103,7 @@ def check_specs() -> None:
             fail(f"{feature_dir.name}/ 有 tasks.md 但缺少 plan.md")
         if has_tasks:
             body = (feature_dir / "tasks.md").read_text(encoding="utf-8")
-            if "- [ ]" not in body:
+            if not TASK_ENTRY.search(body):
                 fail(f"{feature_dir.name}/tasks.md 中没有可执行的任务条目")
 
 
