@@ -1,0 +1,91 @@
+// Identity service: 账号与身份（首段切片）
+// 稳定性：alpha —— 破坏性变更前 MUST 升 v2 并给迁移方案。
+syntax = "proto3";
+
+package isletalk.identity.v1;
+
+option go_package = "isletalk/relationship/api/identity/v1;identityv1";
+
+// 内部账号 ID：全局唯一、不可变（FR-075）。
+message UserId {
+  string value = 1; // UUIDv7 字符串
+}
+
+// 公开账号名：可改、系统保证唯一、可被搜索（FR-076/077）。
+message PublicName {
+  string value = 1;
+}
+
+// 用户账号（返回给调用方的最小字段集，MUST NOT 泄露手机号明文，FR-051/071）。
+message User {
+  UserId id = 1;
+  PublicName public_name = 2;
+  string nickname = 3;
+  string avatar_url = 4;
+  string signature = 5;
+  // 资料可见范围与陌生人添加开关，随隐私设置返回（FR-049）。
+  string visibility = 6;       // public / friends_only / private
+  bool allow_stranger_add = 7;
+}
+
+message GetUserRequest {
+  UserId id = 1;
+}
+
+message GetUserResponse {
+  User user = 1;
+}
+
+// 按公开账号名精确搜索（FR-007）。禁止按手机号搜索。
+message SearchByPublicNameRequest {
+  string public_name = 1;
+}
+
+message SearchByPublicNameResponse {
+  User user = 1; // 未命中时为空
+}
+
+// 供其他服务校验"该用户是否可用"（用于消息授权等）。
+// 响应不得区分"不存在"与"被封禁"以外的多余信息（防枚举）。
+message CheckUserRequest {
+  UserId id = 1;
+}
+
+message CheckUserResponse {
+  bool active = 1; // false = 不存在或已注销/封禁（统一为不可用）
+}
+
+// 设备会话：多端同时在线、远程下线、改密全失效（FR-003/005）。
+message Session {
+  string session_id = 1;
+  string device_id = 2;
+  bool revoked = 3;
+}
+
+message ListSessionsRequest {
+  UserId user_id = 1;
+}
+
+message ListSessionsResponse {
+  repeated Session sessions = 1;
+}
+
+message RevokeSessionRequest {
+  UserId user_id = 1;
+  string session_id = 2;
+}
+
+message RevokeSessionResponse {}
+
+// 身份服务对外能力（供关系/消息等内部服务调用）。
+service IdentityService {
+  // 查询用户
+  rpc GetUser(GetUserRequest) returns (GetUserResponse);
+  // 按公开账号名精确搜索
+  rpc SearchByPublicName(SearchByPublicNameRequest) returns (SearchByPublicNameResponse);
+  // 校验用户可用性（授权用）
+  rpc CheckUser(CheckUserRequest) returns (CheckUserResponse);
+  // 会话管理
+  rpc ListSessions(ListSessionsRequest) returns (ListSessionsResponse);
+  rpc RevokeSession(RevokeSessionRequest) returns (RevokeSessionResponse);
+}
