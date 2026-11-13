@@ -27,7 +27,7 @@ func TestDeleteFriendBidirectional(t *testing.T) {
 	requests := newMemRequests()
 	identity := newMemIdentity()
 	identity.allow["b"] = true
-	fsvc := NewFriendRequestService(requests, identity)
+	fsvc := NewFriendRequestService(requests, newMemFriendships(), newMemBlocks(), identity, nil)
 	rsvc := NewRespondService(requests, friendships)
 	lsvc := NewFriendListService(friendships)
 
@@ -72,7 +72,7 @@ func TestListFriendsPagination(t *testing.T) {
 func TestSetBlockUnblock(t *testing.T) {
 	ctx := context.Background()
 	blocks := newMemBlocks()
-	svc := NewBlockService(blocks)
+	svc := NewBlockService(blocks, newMemRequests())
 
 	if err := svc.SetBlock(ctx, mustUID(t, "a"), mustUID(t, "b"), true); err != nil {
 		t.Fatalf("SetBlock err: %v", err)

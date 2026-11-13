@@ -3,6 +3,7 @@ package di
 import (
 	"isletalk/relationship/application/service"
 	"isletalk/relationship/domain/port"
+	"isletalk/relationship/infrastructure/cache"
 )
 
 // Container 是组合根（宪法原则 V：组合根 MUST 唯一且位于最外层）。
@@ -24,9 +25,9 @@ func NewContainer(
 	identity port.IdentityClient,
 ) *Container {
 	return &Container{
-		FriendRequest: service.NewFriendRequestService(requests, identity),
+		FriendRequest: service.NewFriendRequestService(requests, friendships, blocks, identity, cache.NewRateLimiter(nil, 0, 10)),
 		Respond:       service.NewRespondService(requests, friendships),
-		Block:         service.NewBlockService(blocks),
+		Block:         service.NewBlockService(blocks, requests),
 		Remark:        service.NewRemarkService(remarks),
 		FriendList:    service.NewFriendListService(friendships),
 		CanMessage:    service.NewCanMessageService(friendships, blocks),

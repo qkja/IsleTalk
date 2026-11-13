@@ -32,3 +32,13 @@ func TestErrorCodeDefault(t *testing.T) {
 		t.Fatalf("default code = %q, want SYS_UNAVAILABLE", code)
 	}
 }
+
+func TestErrorEnvelope(t *testing.T) {
+	env := errorEnvelope(service.ErrBlocked)
+	if env.Meta == nil || env.Meta.Code != "RES_BLOCKED" {
+		t.Fatalf("envelope meta = %v, want RES_BLOCKED", env.Meta)
+	}
+	if env.Success {
+		t.Fatal("error envelope should have success=false")
+	}
+}

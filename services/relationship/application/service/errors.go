@@ -10,4 +10,5 @@ var (
 	ErrRequestNotFound     = errors.New("friend request not found")
 	ErrAlreadyFriends      = errors.New("already friends")
 	ErrBlocked             = errors.New("blocked")
+	ErrRateLimited         = errors.New("rate limited")
 )

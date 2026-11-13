@@ -91,10 +91,10 @@ func newSuccessHandler() *Handler {
 	b := &memB{m: map[string]entity.Block{}}
 	rk := &memRk{m: map[string]entity.Remark{}}
 	return NewHandler(
-		service.NewFriendRequestService(r, memI{}),
+		service.NewFriendRequestService(r, f, b, memI{}, nil),
 		service.NewRespondService(r, f),
 		service.NewRemarkService(rk),
-		service.NewBlockService(b),
+		service.NewBlockService(b, r),
 		service.NewFriendListService(f),
 	)
 }
@@ -135,6 +135,14 @@ func TestSetBlockSuccess(t *testing.T) {
 func TestDeleteFriendSuccess(t *testing.T) {
 	h := newSuccessHandler()
 	rec := doRequest(t, h, "DELETE", "/api/v1/friend", `{"userId":"a","friendId":"b"}`)
+	if rec.Code != 200 {
+		t.Fatalf("code = %d, want 200", rec.Code)
+	}
+}
+
+func TestListFriendsSuccess(t *testing.T) {
+	h := newSuccessHandler()
+	rec := doRequest(t, h, "GET", "/api/v1/friends?userId=a", "")
 	if rec.Code != 200 {
 		t.Fatalf("code = %d, want 200", rec.Code)
 	}

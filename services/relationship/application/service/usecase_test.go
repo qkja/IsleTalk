@@ -10,7 +10,7 @@ func TestSendFriendRequestSuccess(t *testing.T) {
 	requests := newMemRequests()
 	identity := newMemIdentity()
 	identity.allow["b"] = true
-	svc := NewFriendRequestService(requests, identity)
+	svc := NewFriendRequestService(requests, newMemFriendships(), newMemBlocks(), identity, nil)
 
 	req, err := svc.Send(ctx, mustUID(t, "a"), mustUID(t, "b"), "hello")
 	if err != nil {
@@ -25,7 +25,7 @@ func TestSendFriendRequestStrangerAddDisabled(t *testing.T) {
 	ctx := context.Background()
 	identity := newMemIdentity()
 	identity.allow["b"] = false
-	svc := NewFriendRequestService(newMemRequests(), identity)
+	svc := NewFriendRequestService(newMemRequests(), newMemFriendships(), newMemBlocks(), identity, nil)
 
 	if _, err := svc.Send(ctx, mustUID(t, "a"), mustUID(t, "b"), "hi"); err != ErrStrangerAddDisabled {
 		t.Fatalf("err = %v, want ErrStrangerAddDisabled", err)
@@ -37,7 +37,7 @@ func TestSendFriendRequestDuplicate(t *testing.T) {
 	requests := newMemRequests()
 	identity := newMemIdentity()
 	identity.allow["b"] = true
-	svc := NewFriendRequestService(requests, identity)
+	svc := NewFriendRequestService(requests, newMemFriendships(), newMemBlocks(), identity, nil)
 
 	if _, err := svc.Send(ctx, mustUID(t, "a"), mustUID(t, "b"), "hi"); err != nil {
 		t.Fatalf("first Send err: %v", err)
@@ -53,7 +53,7 @@ func TestRespondAcceptBidirectional(t *testing.T) {
 	friendships := newMemFriendships()
 	identity := newMemIdentity()
 	identity.allow["b"] = true
-	fsvc := NewFriendRequestService(requests, identity)
+	fsvc := NewFriendRequestService(requests, newMemFriendships(), newMemBlocks(), identity, nil)
 	rsvc := NewRespondService(requests, friendships)
 
 	if _, err := fsvc.Send(ctx, mustUID(t, "a"), mustUID(t, "b"), "hi"); err != nil {
@@ -78,7 +78,7 @@ func TestRespondReject(t *testing.T) {
 	friendships := newMemFriendships()
 	identity := newMemIdentity()
 	identity.allow["b"] = true
-	fsvc := NewFriendRequestService(requests, identity)
+	fsvc := NewFriendRequestService(requests, newMemFriendships(), newMemBlocks(), identity, nil)
 	rsvc := NewRespondService(requests, friendships)
 
 	if _, err := fsvc.Send(ctx, mustUID(t, "a"), mustUID(t, "b"), "hi"); err != nil {
@@ -103,7 +103,7 @@ func TestCanMessageAllowed(t *testing.T) {
 	blocks := newMemBlocks()
 	identity := newMemIdentity()
 	identity.allow["b"] = true
-	fsvc := NewFriendRequestService(requests, identity)
+	fsvc := NewFriendRequestService(requests, newMemFriendships(), newMemBlocks(), identity, nil)
 	rsvc := NewRespondService(requests, friendships)
 	csvc := NewCanMessageService(friendships, blocks)
 
@@ -126,9 +126,9 @@ func TestCanMessageBlocked(t *testing.T) {
 	blocks := newMemBlocks()
 	identity := newMemIdentity()
 	identity.allow["b"] = true
-	fsvc := NewFriendRequestService(requests, identity)
+	fsvc := NewFriendRequestService(requests, newMemFriendships(), newMemBlocks(), identity, nil)
 	rsvc := NewRespondService(requests, friendships)
-	bsvc := NewBlockService(blocks)
+	bsvc := NewBlockService(blocks, requests)
 	csvc := NewCanMessageService(friendships, blocks)
 
 	if _, err := fsvc.Send(ctx, mustUID(t, "a"), mustUID(t, "b"), "hi"); err != nil {

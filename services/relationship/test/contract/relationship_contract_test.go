@@ -85,9 +85,9 @@ func newServer() *grpcserver.RelationshipGRPCServer {
 	r := &memRequests{m: map[string]entity.FriendRequest{}}
 	b := &memBlocks{m: map[string]entity.Block{}}
 	return grpcserver.NewRelationshipGRPCServer(
-		service.NewFriendRequestService(r, memIdentity{}),
+		service.NewFriendRequestService(r, f, b, memIdentity{}, nil),
 		service.NewRespondService(r, f),
-		service.NewBlockService(b),
+		service.NewBlockService(b, r),
 		service.NewCanMessageService(f, b),
 	)
 }

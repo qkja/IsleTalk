@@ -172,3 +172,15 @@
 - 拉黑单向（FR-008）：Block 只存 owner→target 一条，历史保留
 - 删除双向解除（FR-007）：双删两条 Friendship 文档
 - 性能基线测试（SC-001 送达率、p95 响应时间）属 002 待办（负载测试工具未选型），本 feature 不实现
+
+---
+
+## Phase 7: Convergence
+
+**Purpose**: `/speckit-converge` 一轮收敛——核查发申请路径的拉黑拦截、限流、好友检查与「新的朋友」入口。
+
+- [X] T037 发申请时检查拉黑拦截：`FriendRequestService.Send` 前 MUST 检查「目标是否拉黑了发起方」，被拉黑方 MUST NOT 能发申请（返回 `ErrBlocked`）per FR-009 (partial)
+- [X] T038 发申请限流：`FriendRequestService` 接入 `RateLimiter`，账号 + IP 双维度限流（防骚扰刷申请）per FR-014 (partial)
+- [X] T039 发申请时检查「是否已是好友」：已是好友 MUST 拒绝再次发申请（返回 `ErrAlreadyFriends`）per FR-003/FR-004 (partial)
+- [X] T040 实现「新的朋友」查询用例：待处理申请列表 + 历史申请列表（`ListPendingByTarget`/`ListHistoryByTarget` 的 application 用例）per FR-011 (missing)
+- [X] T041 拉黑时使既有待处理申请失效：`BlockService.SetBlock(blocked=true)` 时 MUST 撤销对方发来的待处理申请 per Edge Cases (missing)
