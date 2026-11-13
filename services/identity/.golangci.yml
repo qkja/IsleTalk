@@ -1,0 +1,18 @@
+run:
+  go: '1.22'
+  timeout: 5m
+linters:
+  enable:
+    - gofmt
+    - govet
+    - staticcheck
+    - ineffassign
+    - unused
+    - errcheck
+  disable:
+    - err113
+issues:
+  exclude-rules:
+    - path: _test\.go
+      linters:
+        - errcheck

@@ -261,6 +261,7 @@
 
 - trace 与 span MUST 遵循 OpenTelemetry 语义约定的标准命名与属性，MUST NOT 自造同义属性；跨服务调用 MUST 传递 trace context，MUST NOT 中断。（来源：opentelemetry.io 语义约定）
 - 日志 MUST 为 JSON 结构化，MUST 有固定字段集（UTC 时间、级别、服务名、版本、trace_id、span_id、请求或事件 ID、错误码），MUST NOT 做自由文本拼接。
+- 日志 MUST 分级：`debug`（调试细节，默认关闭）、`info`（关键操作与状态）、`warn`（可恢复异常）、`error`（不可恢复错误）。每个对外接口与关键用例的入口 MUST 打 `info`；错误与异常路径 MUST 打 `warn`/`error` 并携带完整上下文（输入摘要、错误堆栈、关联 ID），MUST NOT 静默吞错——程序必有缺陷，分级日志是可排查性的底线。
 - 日志、指标、追踪与错误响应 MUST NOT 包含秘密或完整 PII（身份证号、手机号、银行卡号、令牌、口令）；MUST 脱敏或哈希；MUST NOT 把用户输入未净化地拼入日志字段（防日志注入）。
 - MUST NOT 把用户 ID、请求 ID、时间戳等高基数字段用作指标标签；每个指标的标签基数 MUST 有上限。（来源：Prometheus cardinality 实践）
 - 每个服务 MUST 有延迟、流量、错误、饱和度四个黄金信号的指标与看板。（来源：SRE Book《Monitoring Distributed Systems》）
@@ -495,4 +496,4 @@
 - 本文件顶部的 Sync Impact Report 是供人工审阅修订的临时材料，**提交前 MUST 删除**。
 - 运行时开发指引参见各 feature 的 spec / plan / tasks 文档；本宪法只定义不可协商的底线。
 
-**Version**: 2.7.0 | **Ratified**: 2026-11-12 | **Last Amended**: 2026-11-13
+**Version**: 2.8.0 | **Ratified**: 2026-11-12 | **Last Amended**: 2026-11-13
