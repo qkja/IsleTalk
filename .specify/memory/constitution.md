@@ -339,7 +339,7 @@
 
 **保护规则**
 
-- `main` 与 `develop` MUST 开启分支保护：MUST 要求 CI 全部通过与至少 1 名评审通过（新增服务、数据库迁移、破坏性契约变更 MUST ≥2 名）；MUST NOT 允许直接推送；MUST NOT 允许 force push；MUST 启用删除保护。（来源：GitHub Docs 分支保护）
+- `main` 与 `develop` MUST 开启分支保护：MUST 要求 CI 全部通过（当前为治理校验与密钥扫描）；MUST 要求分支与目标分支同步后才可合并；MUST NOT 允许直接推送；MUST NOT 允许 force push；MUST 启用删除保护；MUST 启用线性历史。（评审人数要求及其例外见「协作与知识」。）（来源：GitHub Docs 分支保护）
 - 受保护分支 MUST 要求"分支与目标分支同步"后才允许合并，MUST NOT 允许带着落后主干的分支合并。
 - MUST 启用 squash merge 与已合并分支自动删除。
 
@@ -387,6 +387,7 @@
 
 - 每个任务 MUST 有明确的完成定义（DoD）——代码、测试、文档、契约、观测与门禁全部满足；MUST NOT 以"能跑起来"作为完成标准。
 - 每个变更 MUST 至少一名非作者评审通过，MUST NOT 作者自审；评审 MUST 检查正确性与宪法合规，MUST NOT 仅检查格式。
+- **评审人数例外（限时）**：GitHub 禁止 PR 作者批准自己的 PR，因此当仓库只有单一维护者时该要求在平台上无法满足。此期间该条暂以下列组合替代：CI 全绿 + CODEOWNERS 自动审查请求 + 禁止直接推送 + 禁止 force push + 删除保护 + 必须同步 + 线性历史 + 公开的全过程记录。MUST 在引入第二名评审者后立即恢复为 ≥1 名（新增服务、数据库迁移、破坏性契约变更 MUST ≥2 名），并以 MINOR 版本修订本宪法。
 - 新服务上线前 MUST 由另一名工程师按附加约束 A–G 组做一次评审——像接手一个已有服务那样评审它。（来源：Google SRE Book Ch.17《Software Engineering in SRE》）
 - PR 描述 MUST 说明变更意图、影响面与验证方式；PR MUST 控制规模，MUST NOT 把无关变更混入（分支命名与合并规则见上方「分支模型」各节）。
 - 每个服务 MUST 有 README（职责、启动方式、依赖、配置项）；每个告警 MUST 有 runbook；每个对外接口 MUST 有文档；文档 MUST 与代码同仓并随变更更新。
@@ -492,4 +493,4 @@
 - 本文件顶部的 Sync Impact Report 是供人工审阅修订的临时材料，**提交前 MUST 删除**。
 - 运行时开发指引参见各 feature 的 spec / plan / tasks 文档；本宪法只定义不可协商的底线。
 
-**Version**: 2.5.1 | **Ratified**: 2026-11-12 | **Last Amended**: 2026-11-13
+**Version**: 2.6.0 | **Ratified**: 2026-11-12 | **Last Amended**: 2026-11-13

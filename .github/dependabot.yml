@@ -1,0 +1,35 @@
+version: 2
+updates:
+  # CI 依赖的 GitHub Actions —— 宪法 F 组：依赖升级 MUST 由机器人提 PR 并经完整 CI
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 5
+    labels:
+      - dependencies
+      - ci
+    commit-message:
+      prefix: "chore(deps)"
+
+  # CI 校验脚本的 Python 依赖（当前无外部依赖，后续新增自动纳入）
+  - package-ecosystem: pip
+    directory: /.github/scripts
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 5
+    labels:
+      - dependencies
+    commit-message:
+      prefix: "chore(deps)"
+
+  # 本地依赖编排（MongoDB / Redis / 消息中间件）的镜像版本
+  - package-ecosystem: docker
+    directory: /
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 5
+    labels:
+      - dependencies
+    commit-message:
+      prefix: "chore(deps)"
