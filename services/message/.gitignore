@@ -1,0 +1,5 @@
+# Go 临时产物
+coverage.out
+*.exe
+*.test
+*.out

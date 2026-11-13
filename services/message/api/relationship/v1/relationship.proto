@@ -1,0 +1,69 @@
+// Relationship service: 好友与关系（首段切片）
+// 稳定性：alpha —— 破坏性变更前 MUST 升 v2 并给迁移方案。
+syntax = "proto3";
+
+package isletalk.relationship.v1;
+
+option go_package = "isletalk/message/api/relationship/v1;relationshipv1";
+
+import "api/identity/v1/identity.proto";
+
+// 好友关系状态（FR-008/009/010/011）。
+enum FriendshipStatus {
+  FRIENDSHIP_STATUS_UNSPECIFIED = 0;
+  FRIENDSHIP_STATUS_PENDING = 1;   // 待对方确认
+  FRIENDSHIP_STATUS_ACCEPTED = 2;  // 已是好友
+  FRIENDSHIP_STATUS_REJECTED = 3;  // 已拒绝
+  FRIENDSHIP_STATUS_BLOCKED = 4;   // 已被（单向）拉黑
+}
+
+message FriendRequest {
+  identity.v1.UserId initiator_id = 1;
+  identity.v1.UserId target_id = 2;
+  string request_message = 3; // 申请附言
+}
+
+message SendFriendRequestResponse {
+  FriendshipStatus status = 1;
+}
+
+message RespondFriendRequest {
+  identity.v1.UserId initiator_id = 1;
+  identity.v1.UserId target_id = 2;
+  bool accept = 3; // true=接受 false=拒绝
+}
+
+message RespondFriendRequestResponse {
+  FriendshipStatus status = 1;
+}
+
+// 拉黑/解除拉黑（单向，FR-011）。
+message SetBlockRequest {
+  identity.v1.UserId owner_id = 1;  // 发起拉黑者
+  identity.v1.UserId target_id = 2; // 被拉黑者
+  bool blocked = 3;                 // true=拉黑 false=解除
+}
+
+message SetBlockResponse {}
+
+// 供消息服务查询"两人是否互为好友且未被拉黑"（发单聊前的授权校验）。
+message CanMessageRequest {
+  identity.v1.UserId sender_id = 1;
+  identity.v1.UserId recipient_id = 2;
+}
+
+message CanMessageResponse {
+  bool allowed = 1;   // false = 非好友或被拉黑
+  FriendshipStatus status = 2;
+}
+
+service RelationshipService {
+  // 发起好友申请
+  rpc SendFriendRequest(FriendRequest) returns (SendFriendRequestResponse);
+  // 接受/拒绝好友申请
+  rpc RespondToFriendRequest(RespondFriendRequest) returns (RespondFriendRequestResponse);
+  // 拉黑/解除拉黑
+  rpc SetBlock(SetBlockRequest) returns (SetBlockResponse);
+  // 消息授权校验
+  rpc CanMessage(CanMessageRequest) returns (CanMessageResponse);
+}
