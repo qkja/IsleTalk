@@ -3,7 +3,7 @@ module isletalk/relationship
 go 1.22
 
 require (
-	github.com/redis/go-redis/v9 v9.7.0
+	github.com/redis/go-redis/v9 v9.7.3
 	go.mongodb.org/mongo-driver v1.13.0
 	google.golang.org/grpc v1.60.0
 	google.golang.org/protobuf v1.34.0
