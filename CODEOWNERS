@@ -1,0 +1,17 @@
+# CODEOWNERS
+# 每个服务与关键目录 MUST 指定归属人，对其变更强制评审。
+# 语法：<路径> <@owner1> [<@owner2> ...]
+# 详见 https://docs.github.com/articles/about-code-owners
+
+# 默认归属：仓库维护者
+# 新增服务后 MUST 在下方补一条更精确的规则，不要只依赖默认规则。
+
+/*                       @qkja
+
+# --- 按服务细化（示例，建服务时替换为真实路径与归属人）---
+# /services/identity-service/  @qkja
+# /services/payment-service/    @qkja
+
+# --- 需要额外评审的敏感路径 ---
+# /.specify/memory/              @qkja
+# /.github/workflows/            @qkja

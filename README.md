@@ -10,6 +10,8 @@
 
 项目宪法位于 [`.specify/memory/constitution.md`](.specify/memory/constitution.md)，是本项目的最高规则来源，与其他文档冲突时以宪法为准。
 
+版本变更记录见 [CHANGELOG.md](CHANGELOG.md)。
+
 | 原则 | 核心约束 |
 |---|---|
 | I. 代码质量优先 | 函数 ≤50 行、文件 ≤800 行；错误显式处理；输入边界校验；密钥走环境变量 |
