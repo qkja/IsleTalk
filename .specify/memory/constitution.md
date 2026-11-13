@@ -203,6 +203,8 @@
 - `.proto` 包 MUST 标注 alpha / beta / stable 稳定性级别，对应不同兼容性承诺。（来源：AIP-181）
 - CI MUST 运行契约破坏性变更检测工具；MUST NOT 合并破坏性契约变更而无版本方案与迁移说明；MUST NOT 复用已废弃的字段号或改变字段语义。
 - 事件 MUST 有 schema 与版本；MUST NOT 静默改变已有事件语义；消费者 MUST 容忍新增可选字段；投递语义 MUST 明确且消费者 MUST 幂等。（来源：CloudEvents）
+- `.proto` 中 RPC 名 MUST NOT 与其输入/输出 message 名同名（同名时 protoc 无法把 RPC 名解析为 message 类型）；冲突时 MUST 改 RPC 名、message 名保持不变。
+- 共享 `.proto` 被各服务 vendoring（各自生成代码）时 MUST 本地化 `go_package`（`{module}/api/{service}/v1`）与 import 路径，MUST NOT 改动字段号、类型或 RPC 签名等契约语义；仅允许改 import 路径、`go_package` 这类构建层信息，改动 MUST 记录在对应 research.md。
 
 **数据治理**
 
@@ -223,6 +225,7 @@
 ### C. 质量、测试与性能规则
 
 - MUST 遵循测试金字塔：单元测试 MUST 占主体且 MUST 能在数分钟内跑完数千个；集成测试次之；端到端与 UI 测试 MUST 保持在少数。层级越高测试数量 MUST 越少；高层级测试 MUST 只覆盖高层级才能发现的问题，MUST NOT 重复验证单元测试已覆盖的逻辑。（来源：Martin Fowler《The Practical Test Pyramid》）
+- 覆盖率统计 MUST 禁用测试缓存（Go 用 `go test -count=1`），MUST NOT 因测试缓存导致覆盖率数字波动或被低估。
 - MUST 以零 MTTR 缺陷为目标：凡是监控能发现的问题，MUST 尽量由一个能在上线前发现它的测试覆盖，从而直接阻断发布而不是上线后再修；零 MTTR 缺陷发现得越多，MTBF 越高。（来源：Google SRE Book Ch.24《Testing Reliability》）
 - 影响运行行为的配置 MUST 纳入版本控制，MUST 有测试比对线上实际配置与仓库期望配置并报告差异（配置漂移检测）。（来源：Ch.24）
 - 每个服务 MUST 有可自动执行的冒烟测试，覆盖启动与核心路径，作为发布后第一道验证。
@@ -294,6 +297,7 @@
 - 消费外部 API MUST 全程 TLS 并校验证书；返回数据 MUST 做 schema 校验，MUST NOT 直接反序列化；MUST 设超时、重定向白名单与响应大小上限；第三方凭据 MUST 走密钥管理并轮换。（来源：API10:2023；ASVS V13.2.1）
 - MUST 仅启用 TLS 1.3（TLS 1.2 仅在明确评估后作兼容回退），MUST NOT 启用 TLS 1.0/1.1，MUST NOT 提供明文 HTTP 业务端点；静态敏感数据 MUST 用 AEAD 加密（AES-256-GCM），nonce/IV MUST NOT 复用；MUST NOT 使用 MD5 / SHA-1 / ECB / PKCS#1v1.5 用于安全用途，RSA MUST ≥3072 位或 ECC ≥256 位；加密密钥 MUST 有版本号、用途、过期时间与轮换计划，MUST 支持新旧密钥并存以零停机轮换；内部 CA 签发证书 MUST 自动续期并有过期告警。（来源：ASVS V11、V12；RFC 8996；NIST SP 800-57）
 - 源码、测试夹具、示例配置、CI 变量与镜像层中 MUST NOT 出现密码、密钥或令牌；一律运行时注入，MUST 以最小权限只读取本服务所需秘密；秘密 MUST 有轮换周期并自动执行，MUST 支持新旧并存过渡。（来源：ASVS V13.3；OWASP Top 10:2025 A08）
+- 密钥扫描（gitleaks）扫的是提交历史而非工作区快照：MUST NOT 以"本地开发占位"为由把密钥/令牌硬编码进源码（占位值同样会被 `generic-api-key` 规则命中）；开发用密钥 MUST 走环境变量注入并在缺失时 fail-fast（原则 I）；已进入提交历史的硬编码密钥 MUST 通过 squash/重写历史彻底清除，MUST NOT 仅在新提交中删除（否则扫描仍命中旧提交）。
 - MUST 维护"哪个事件记到哪"的日志清单（格式、存储位置、访问控制、留存期）；认证成功与失败、授权拒绝、账号与权限变更、配置变更、密钥使用 MUST 全部记录；每条安全日志 MUST 含 UTC 时间、主体、来源 IP、动作、目标对象与结果，且 MUST NOT 含敏感数据本体；审计日志 MUST 写入 append-only 存储并与业务库分离，MUST NOT 提供应用侧删除或修改接口；安全审计日志 MUST 留存 ≥6 个月（《网络安全法》第二十一条）；MUST 对爆破、越权尝试、密钥误用与异常批量导出建立检测与告警。（来源：ASVS V16；OWASP Top 10:2025 A09；PIPL 第19条）
 - MUST 建立个人信息与敏感个人信息清单（生物识别、宗教信仰、特定身份、医疗健康、金融账户、行踪轨迹、未成年人信息）；采集与返回字段 MUST 与处理目的直接相关且只取最小必要；处理敏感个人信息 MUST 取得单独同意；MUST 按处理目的实现自动过期删除；MUST 提供主体查阅、复制、更正、删除的受理入口；向境外提供个人信息 MUST 满足安全评估、专业机构认证或标准合同三者之一并取得单独同意；处理敏感个人信息、自动化决策、委托处理、对外提供与跨境传输 MUST 事前做影响评估并保存 ≥3 年；MUST 有泄露响应的书面应急预案；测试与分析场景 MUST 使用去标识化或假名化数据，MUST NOT 直接使用生产个人数据。（来源：PIPL 第6/17/19/28/29/38/39/44/51/55/56/57 条；GDPR Art.5/17/25/32/35）
 - 每次发布 MUST 生成 CycloneDX 1.6 或 SPDX 2.3 格式 SBOM，覆盖直接与传递依赖并与制品一同归档；CI MUST 扫描直接依赖、传递依赖与构建工具的已知漏洞；MUST 提交 lockfile 并使用不可变版本或哈希，MUST NOT 在构建时解析浮动版本；MUST 有允许与禁止许可证清单并由 CI 阻断未批准许可证；发布构件 MUST 签名并附 SLSA provenance，部署前 MUST 校验签名（目标 SLSA Build L2 —— 有来源证明、托管构建平台）；构建 MUST 在隔离环境执行，开发、测试、生产 MUST 分离；MUST 定期移除未使用依赖；MUST 一次构建多环境晋级，MUST NOT 每个环境重新构建；MUST NOT 让同一人从写代码到发布生产全程无第二人监督；CI 配置、制品库、SBOM 工具与镜像仓库的变更 MUST 有版本控制。（来源：OWASP Top 10:2025 A03；SSDF PO/PS/PW/RV；SLSA；OpenSSF Scorecard）
@@ -322,18 +326,23 @@
 
 ### F. 交付、分支与协作治理规则
 
-**分支模型（Git Flow）**
+**分支模型（三常驻分支）**
 
-- 仓库 MUST 采用 Git Flow：`main` 为生产分支（只接受 release 与 hotfix 合入）、`develop` 为集成分支（所有特性合入此处）、`feature/` 为特性分支、`release/` 为发布分支、`hotfix/` 为线上紧急修复分支。
-- `develop` MUST 始终可部署；`main` MUST 始终等于"上次发布的状态"，MUST NOT 领先于 `develop`。
-- 特性分支 MUST 从最新的 `develop` 切出，MUST NOT 从 `main` 或其他特性分支切出。
-- 发布分支 MUST 从 `develop` 切出，MUST 只含已合入 `develop` 的变更，MUST NOT 在其上继续开发新功能（只接受缺陷修复与发布准备）；发布完成后 MUST 合回 `develop` 并立即删除。
-- 紧急修复分支 MUST 从 `main` 上一个发布 tag 切出；修复合入 `main` 后 MUST 同步合回 `develop`，MUST NOT 遗漏（否则下个发布会把该缺陷带回）。
-- MUST NOT 把 `release/` 分支当作长期分支。
+- 仓库 MUST 采用三常驻分支模型：`main`（生产）、`release`（预发布）、`develop`（集成）为三个常驻分支；`feature/`（需求）、`bug/`（缺陷）、`hotfix/`（紧急上线）为工作分支，一个 Spec Kit feature 对应一个工作分支。
+- 合入方向 MUST 单向且固定，MUST NOT 反向合入：
+  - `main` MUST 只接受 `release` 与 `hotfix` 分支合入。
+  - `release` MUST 只接受 `develop` 与 `bug` 分支合入。
+  - `develop` MUST 只接受 `feature` 分支合入。
+- 分支切出点 MUST 固定：
+  - 特性分支（`feature/`）MUST 从最新的 `develop` 切出，合回 `develop`。
+  - 缺陷分支（`bug/`）MUST 从 `release` 切出，合回 `release`（修复发布候选中的缺陷）。
+  - 紧急修复分支（`hotfix/`）MUST 从 `main` 上一个发布 tag 切出，合回 `main`，并 MUST 反合 `release` 与 `develop`，MUST NOT 遗漏（否则下个发布会把该缺陷带回）。
+- `main` MUST 始终等于"当前生产运行状态"；`release` MUST 始终等于"下一发布候选"；`develop` MUST 始终可集成、可部署。
+- 发布流程：`develop` 集成完成 → 合入 `release` 冻结候选 → `release` 上只做缺陷修复与发布准备 → `release` 验收通过 → 合入 `main` 并打 tag。
 
 **命名与关联**
 
-- 分支名 MUST 为 `{type}/{编号}-{kebab-case-slug}`，`type` ∈ `feature` / `fix` / `hotfix` / `release` / `chore` / `docs`，编号为任务或 issue 号，slug 用小写连字符。
+- 分支名 MUST 为 `{type}/{编号}-{kebab-case-slug}`，工作分支 `type` ∈ `feature` / `bug` / `hotfix`，维护分支 `type` ∈ `chore` / `docs`，编号为任务或 issue 号，slug 用小写连字符。常驻分支 `main` / `release` / `develop` 不作为工作分支名。
 - MUST NOT 使用含义不明的分支名（个人名、`test`、`tmp`、`dev2` 等）。
 - 每个特性分支 MUST 对应一个 Spec Kit feature 目录（含 `spec.md` / `plan.md` / `tasks.md`）；分支名 MUST 含 feature 编号，使提交可回溯到规格产物。spec 目录名（`specs/{编号}-{slug}`）与 git 分支名相互独立，由 `.specify/feature.json` 关联；两者的编号 MUST 一致。
 - PR MUST 引用任务或 issue 号；提交信息 MUST 遵循 Conventional Commits，MUST NOT 使用 `fix`、`update`、`临时` 等无信息量描述。
@@ -341,21 +350,22 @@
 
 **保护规则**
 
-- `main` 与 `develop` MUST 开启分支保护：MUST 要求 CI 全部通过（当前为治理校验与密钥扫描）；MUST 要求分支与目标分支同步后才可合并；MUST NOT 允许直接推送；MUST NOT 允许 force push；MUST 启用删除保护；MUST 启用线性历史。（评审人数要求及其例外见「协作与知识」。）（来源：GitHub Docs 分支保护）
+- `main`、`release` 与 `develop` MUST 开启分支保护：MUST 要求 CI 全部通过（治理校验、密钥扫描与各服务覆盖率门禁）；MUST 要求分支与目标分支同步后才可合并；MUST NOT 允许直接推送；MUST NOT 允许 force push；MUST 启用删除保护；MUST 启用线性历史。（评审人数要求及其例外见「协作与知识」。）（来源：GitHub Docs 分支保护）
+- 多服务仓库的 CI 覆盖率门禁 MUST 按服务目录变更过滤（如 dorny/paths-filter）触发，MUST NOT 让一个服务的 PR 触发并阻塞其他服务的覆盖率 job；服务数增长时 MUST 同步维护各服务的 path-filter 与对应覆盖率 job。
 - 受保护分支 MUST 要求"分支与目标分支同步"后才允许合并，MUST NOT 允许带着落后主干的分支合并。
 - MUST 启用 squash merge 与已合并分支自动删除。
 
 **合并策略**
 
-- 所有合入 `develop` 与 `main` 的 PR MUST 使用 squash merge，主干上每个 PR MUST 恰好产生一个提交。
+- 所有合入 `develop`、`release` 与 `main` 的 PR MUST 使用 squash merge，主干上每个 PR MUST 恰好产生一个提交。
 - PR 标题 MUST 即为主干提交信息（Conventional Commits 格式）；MUST NOT 把多个不相关任务合入一个 PR。
-- 合并前 MUST 先把目标分支（特性分支合 `develop` 时合 `develop`，紧急修复合 `main` 时合 `main`）同步进特性分支。
+- 合并前 MUST 先把目标分支（特性分支合 `develop` 时合 `develop`，缺陷分支合 `release` 时合 `release`，紧急修复合 `main` 时合 `main`）同步进工作分支。
 - 受保护分支 MUST NOT 被重写历史；已推送的共享分支 MUST NOT force push。
 
-**特性分支生命周期**
+**工作分支生命周期**
 
-- 特性分支 MUST 短命：建议 ≤3 天或一个迭代，MUST NOT 跨越迭代长期存在。
-- 特性分支 MUST 定期同步 `develop`；落后超过 3 天 MUST 先同步再继续工作。
+- 工作分支（`feature` / `bug` / `hotfix`）MUST 短命：建议 ≤3 天或一个迭代，MUST NOT 跨越迭代长期存在。
+- 工作分支 MUST 定期同步其目标分支（`feature` 同步 `develop`、`bug` 同步 `release`、`hotfix` 同步 `main`）；落后超过 3 天 MUST 先同步再继续工作。
 - PR MUST 在可观察的时限内被首次评审（建议 1 个工作日；紧急修复 ≤2 小时），超时 MUST 催办。
 - 已合并的分支 MUST 立即删除；未合并且超过 14 天无进展的分支 MUST 关闭或重新评估。
 - MUST NOT 在同一个分支上并行开发两个任务。
@@ -364,8 +374,9 @@
 
 - 发布 MUST 打 annotated tag，标签名 MUST 为 `v{MAJOR}.{MINOR}.{PATCH}`（遵循 SemVer），MUST NOT 复用或移动已发布标签。
 - 标签 MUST 受保护，MUST NOT 被强制推送或删除。
-- `release/` 合入 `main` 后 MUST 在 `main` 的 squash 提交上打 tag；紧急修复发布 MUST 同时打 tag 并同步 `develop`。
-- `release/` 合并 MUST 使用 Conventional Commits 风格的版本提交信息（如 `chore(release): v1.2.0`）。
+- `release`（常驻预发布分支）合入 `main` 后 MUST 在 `main` 的 squash 提交上打 tag；紧急修复发布 MUST 同时打 tag 并反合 `release` 与 `develop`。
+- `release` 合入 `main` 的合并 MUST 使用 Conventional Commits 风格的版本提交信息（如 `chore(release): v1.2.0`）。
+- `release` 采用 squash 合入 `main` 后，同步回 `develop` MUST 以独立提交带回净变化（如 CHANGELOG 新版本段），MUST NOT 直接 merge `main`→`develop`（squash 提交与 develop 的独立提交会产生 add/add 冲突）。
 
 **仓库卫生与协作入口**
 
@@ -496,4 +507,4 @@
 - 本文件顶部的 Sync Impact Report 是供人工审阅修订的临时材料，**提交前 MUST 删除**。
 - 运行时开发指引参见各 feature 的 spec / plan / tasks 文档；本宪法只定义不可协商的底线。
 
-**Version**: 2.8.0 | **Ratified**: 2026-11-12 | **Last Amended**: 2026-11-13
+**Version**: 3.0.0 | **Ratified**: 2026-11-12 | **Last Amended**: 2026-11-14
