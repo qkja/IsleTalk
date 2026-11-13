@@ -127,8 +127,12 @@
 
 ## Assumptions
 
-- 仓库保持私有，GitHub Free 套餐；分支保护与规则集暂不可用，宪法 F 组「保护规则」的实现方式
-  需要在套餐升级或仓库公开后补齐，当前以 CI 校验 + CODEOWNERS + 评审纪律近似达成。
+- 仓库已于 2026-11-13 由私有改为公开。随之解锁并已启用：分支保护（main / develop）、
+  仓库规则集（标签保护）、GitHub 内置 secret scanning 与 push protection、Dependabot 漏洞告警
+  与安全更新。CI 中的 gitleaks 作业作为纵深防御保留。
+- **评审人数的限时例外**：GitHub 禁止作者批准自己的 PR，单一维护者仓库无法满足"≥1 名非作者评审"。
+  期间以 CI 全绿 + CODEOWNERS 审查请求 + 禁直接推送 + 禁 force push + 删除保护替代，
+  已在宪法 v2.6.0 的「协作与知识」中写明例外与恢复条件。
 - LICENSE 采用 Apache-2.0；若项目实际不打算开源，可改为专有声明或 MIT，法律含义由维护者确认。
 - 语言相关的 CI 门禁（覆盖率、依赖方向检查、SAST/SCA、契约破坏检测）待首个服务确定实现语言后补入，
   在 `.github/workflows/ci.yml` 中已留占位说明。

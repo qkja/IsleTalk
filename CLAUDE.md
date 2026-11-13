@@ -100,8 +100,12 @@ Git Flow + squash merge（宪法 F 组有完整细则）：
 - `main` 生产分支（只收 release 与 hotfix）、`develop` 集成分支、`feature/` `release/` `hotfix/`
 - 特性分支从最新 `develop` 切；hotfix 从 `main` 的发布 tag 切，**合入 main 后必须同步回 develop**
 - 分支名 `{type}/{编号}-{kebab-case-slug}`；编号须能对应 `specs/` 下的 feature 目录
-- 合入 develop 与 main 一律 squash；main 与 develop 必须开分支保护（CI 全绿 + ≥1 评审 + 禁直接推送 + 禁 force push）
+- 合入 develop 与 main 一律 squash；main 与 develop 必须开分支保护（CI 全绿 + 禁直接推送 + 禁 force push + 删除保护 + 必须同步 + 线性历史）
 - 已合并分支立即删除；特性分支 ≤3 天
+
+> **评审人数的限时例外**：GitHub 禁止作者批准自己的 PR，单一维护者仓库无法满足"≥1 名非作者评审"。
+> 期间分支保护的 `required_approving_review_count` 暂设为 0，其余保护全部生效。
+> 引入第二名评审者后必须恢复为 ≥1 名，并修订宪法（见宪法 F 组「协作与知识」的例外条款）。
 
 ## 环境注意事项
 
