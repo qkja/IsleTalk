@@ -2,6 +2,7 @@ package port
 
 import (
 	"context"
+	"time"
 
 	"isletalk/identity/domain/entity"
 	"isletalk/identity/domain/valueobject"
@@ -15,6 +16,8 @@ type VerificationRepository interface {
 	FindByUser(ctx context.Context, userID valueobject.UserId) (entity.Verification, error)
 	// Revoke 撤回实名（删除身份信息，信任降级）。
 	Revoke(ctx context.Context, userID valueobject.UserId) error
+	// DeleteExpired 删除保留期限到期的实名信息，返回删除条数（FR-025）。
+	DeleteExpired(ctx context.Context, before time.Time) (int64, error)
 }
 
 // NameClaimRepository 是公开账号名占用记录的持久化接口。

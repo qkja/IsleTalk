@@ -147,3 +147,90 @@ func TestMongoNameClaimAvailability(t *testing.T) {
 		t.Fatal("released name within retention should not be available")
 	}
 }
+
+func TestMongoVerificationSaveFindRevoke(t *testing.T) {
+	db := mongoTestDB(t)
+	ctx := context.Background()
+	repo := persistence.NewMongoVerificationRepo(db)
+
+	uid, _ := newID("u-1")
+	v := entity.NewVerification(uid, "idcard", "encrypted-digest", time.Now(), time.Now().Add(30*24*time.Hour))
+	saved, err := repo.Save(ctx, v)
+	if err != nil {
+		t.Fatalf("Save: %v", err)
+	}
+	if saved.Status() != entity.VerificationSubmitted {
+		t.Fatalf("status = %v", saved.Status())
+	}
+
+	got, err := repo.FindByUser(ctx, uid)
+	if err != nil || got.IDType() != "idcard" {
+		t.Fatalf("FindByUser = %q, %v", got.IDType(), err)
+	}
+
+	if err := repo.Revoke(ctx, uid); err != nil {
+		t.Fatalf("Revoke: %v", err)
+	}
+	revoked, _ := repo.FindByUser(ctx, uid)
+	if revoked.Status() != entity.VerificationRevoked {
+		t.Fatal("verification should be revoked")
+	}
+}
+
+func TestMongoUserFindByIDAndUpdate(t *testing.T) {
+	db := mongoTestDB(t)
+	ctx := context.Background()
+	repo := persistence.NewMongoUserRepo(db)
+	_ = repo.EnsureIndexes(ctx)
+
+	u := testUser(t, "u-1", "alice", "138")
+	if _, err := repo.Create(ctx, u); err != nil {
+		t.Fatalf("Create: %v", err)
+	}
+
+	got, err := repo.FindByID(ctx, u.ID())
+	if err != nil || got.PublicName().String() != "alice" {
+		t.Fatalf("FindByID: %v", err)
+	}
+
+	got.UpdateProfile("Alice", "", "")
+	if err := repo.Update(ctx, got); err != nil {
+		t.Fatalf("Update: %v", err)
+	}
+	updated, _ := repo.FindByID(ctx, u.ID())
+	if updated.Nickname() != "Alice" {
+		t.Fatal("nickname should be updated")
+	}
+}
+
+func TestMongoSessionListRevokeAll(t *testing.T) {
+	db := mongoTestDB(t)
+	ctx := context.Background()
+	repo := persistence.NewMongoSessionRepo(db)
+
+	uid, _ := newID("u-1")
+	if _, err := repo.Create(ctx, entity.NewSession("s-1", uid, "d1")); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := repo.Create(ctx, entity.NewSession("s-2", uid, "d2")); err != nil {
+		t.Fatal(err)
+	}
+
+	list, err := repo.ListByUser(ctx, uid)
+	if err != nil || len(list) != 2 {
+		t.Fatalf("ListByUser len = %d, %v", len(list), err)
+	}
+
+	if err := repo.Touch(ctx, "s-1"); err != nil {
+		t.Fatalf("Touch: %v", err)
+	}
+	if err := repo.RevokeAllByUser(ctx, uid); err != nil {
+		t.Fatalf("RevokeAllByUser: %v", err)
+	}
+	list2, _ := repo.ListByUser(ctx, uid)
+	for _, s := range list2 {
+		if !s.Revoked() {
+			t.Fatal("all sessions should be revoked")
+		}
+	}
+}

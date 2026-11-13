@@ -2,6 +2,7 @@ package service
 
 import (
 	"context"
+	"log/slog"
 	"time"
 
 	"isletalk/identity/domain/entity"
@@ -29,11 +30,34 @@ func (s *VerificationService) Submit(
 	consentAt time.Time,
 	retention time.Duration,
 ) (entity.Verification, error) {
+	slog.Info("submit verification", "user_id", userID.String(), "id_type", idType)
 	v := entity.NewVerification(userID, idType, idDigest, consentAt, time.Now().Add(retention))
-	return s.verifications.Save(ctx, v)
+	saved, err := s.verifications.Save(ctx, v)
+	if err != nil {
+		slog.Error("submit verification save failed", "err", err, "user_id", userID.String())
+		return entity.Verification{}, err
+	}
+	return saved, nil
 }
 
 // Revoke 撤回实名（FR-024）：删除身份信息 + 信任降级 + 额度回落。
 func (s *VerificationService) Revoke(ctx context.Context, userID valueobject.UserId) error {
-	return s.verifications.Revoke(ctx, userID)
+	slog.Info("revoke verification", "user_id", userID.String())
+	if err := s.verifications.Revoke(ctx, userID); err != nil {
+		slog.Error("revoke verification failed", "err", err, "user_id", userID.String())
+		return err
+	}
+	return nil
+}
+
+// PurgeExpired 删除保留期限到期的实名信息（FR-025 到期删除机制）。
+func (s *VerificationService) PurgeExpired(ctx context.Context, now time.Time) (int64, error) {
+	slog.Info("purge expired verifications", "before", now.UTC().String())
+	n, err := s.verifications.DeleteExpired(ctx, now)
+	if err != nil {
+		slog.Error("purge expired verifications failed", "err", err)
+		return 0, err
+	}
+	slog.Info("purge expired verifications done", "deleted", n)
+	return n, nil
 }

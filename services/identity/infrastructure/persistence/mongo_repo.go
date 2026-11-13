@@ -11,6 +11,7 @@ import (
 	"isletalk/identity/domain/entity"
 	"isletalk/identity/domain/port"
 	"isletalk/identity/domain/valueobject"
+	"isletalk/identity/infrastructure/config"
 )
 
 // 本文件实现 4 个仓储 port（T009），完整 CRUD。
@@ -19,34 +20,36 @@ import (
 // —— 实体 ↔ BSON DTO ——
 
 type userDoc struct {
-	ID               string `bson:"_id"`
-	PublicName       string `bson:"public_name"`
-	PhoneHash        string `bson:"phone_hash"`
-	PasswordHash     string `bson:"password_hash"`
-	Nickname         string `bson:"nickname"`
-	AvatarURL        string `bson:"avatar_url"`
-	Signature        string `bson:"signature"`
-	Visibility       string `bson:"visibility"`
-	AllowStrangerAdd bool   `bson:"allow_stranger_add"`
-	Locale           string `bson:"locale"`
-	Status           string `bson:"status"`
-	CreatedAt        int64  `bson:"created_at"`
+	ID                     string `bson:"_id"`
+	PublicName             string `bson:"public_name"`
+	PhoneHash              string `bson:"phone_hash"`
+	PasswordHash           string `bson:"password_hash"`
+	Nickname               string `bson:"nickname"`
+	AvatarURL              string `bson:"avatar_url"`
+	Signature              string `bson:"signature"`
+	Visibility             string `bson:"visibility"`
+	AllowStrangerAdd       bool   `bson:"allow_stranger_add"`
+	Locale                 string `bson:"locale"`
+	Status                 string `bson:"status"`
+	CreatedAt              int64  `bson:"created_at"`
+	LastPublicNameChangeAt int64  `bson:"last_public_name_change_at"`
 }
 
 func toUserDoc(u entity.User) userDoc {
 	return userDoc{
-		ID:               u.ID().String(),
-		PublicName:       u.PublicName().String(),
-		PhoneHash:        u.PhoneHash().String(),
-		PasswordHash:     u.PasswordHash().String(),
-		Nickname:         u.Nickname(),
-		AvatarURL:        u.AvatarURL(),
-		Signature:        u.Signature(),
-		Visibility:       string(u.Visibility()),
-		AllowStrangerAdd: u.AllowStrangerAdd(),
-		Locale:           u.Locale(),
-		Status:           string(u.Status()),
-		CreatedAt:        u.CreatedAt().UnixMilli(),
+		ID:                     u.ID().String(),
+		PublicName:             u.PublicName().String(),
+		PhoneHash:              u.PhoneHash().String(),
+		PasswordHash:           u.PasswordHash().String(),
+		Nickname:               u.Nickname(),
+		AvatarURL:              u.AvatarURL(),
+		Signature:              u.Signature(),
+		Visibility:             string(u.Visibility()),
+		AllowStrangerAdd:       u.AllowStrangerAdd(),
+		Locale:                 u.Locale(),
+		Status:                 string(u.Status()),
+		CreatedAt:              u.CreatedAt().UnixMilli(),
+		LastPublicNameChangeAt: u.LastPublicNameChangeAt().UnixMilli(),
 	}
 }
 
@@ -73,6 +76,9 @@ func fromUserDoc(d userDoc) (entity.User, error) {
 	u.UpdateProfile(d.Nickname, d.AvatarURL, d.Signature)
 	u.SetVisibility(entity.Visibility(d.Visibility))
 	u.SetAllowStrangerAdd(d.AllowStrangerAdd)
+	if d.LastPublicNameChangeAt > 0 {
+		u.RestoreLastPublicNameChangeAt(time.UnixMilli(d.LastPublicNameChangeAt))
+	}
 	if d.Status == string(entity.UserDeactivated) {
 		u.Deactivate()
 	}
@@ -268,8 +274,17 @@ func (r *MongoVerificationRepo) FindByUser(ctx context.Context, uid valueobject.
 	return fromVerificationDoc(d), nil
 }
 func (r *MongoVerificationRepo) Revoke(ctx context.Context, uid valueobject.UserId) error {
-	_, err := r.verifs.UpdateOne(ctx, bson.M{"_id": uid.String()}, bson.M{"$set": bson.M{"status": "revoked"}})
+	_, err := r.verifs.UpdateOne(ctx, bson.M{"_id": uid.String()}, bson.M{
+		"$set": bson.M{"status": "revoked", "id_digest": ""},
+	})
 	return err
+}
+func (r *MongoVerificationRepo) DeleteExpired(ctx context.Context, before time.Time) (int64, error) {
+	res, err := r.verifs.DeleteMany(ctx, bson.M{"retention_until": bson.M{"$lt": before.UnixMilli()}})
+	if err != nil {
+		return 0, err
+	}
+	return res.DeletedCount, nil
 }
 
 // —— NameClaimRepository ——
@@ -301,7 +316,8 @@ func (r *MongoNameClaimRepo) Claim(ctx context.Context, n valueobject.PublicName
 }
 func (r *MongoNameClaimRepo) Release(ctx context.Context, n valueobject.PublicName) error {
 	now := time.Now()
-	reserved := now.Add(90 * 24 * time.Hour)
+	retention := time.Duration(config.Days("IDENTITY_NAME_RETENTION_DAYS", 90)) * 24 * time.Hour
+	reserved := now.Add(retention)
 	nowMs, reservedMs := now.UnixMilli(), reserved.UnixMilli()
 	_, err := r.claims.UpdateOne(ctx, bson.M{"_id": n.String()}, bson.M{
 		"$set": bson.M{"released_at": &nowMs, "reserved_until": &reservedMs},

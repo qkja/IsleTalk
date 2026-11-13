@@ -38,7 +38,7 @@ func NewContainer(
 			users, sessions, tokens, codes, phones, passwords, ids,
 		),
 		Login: service.NewLoginService(
-			users, sessions, tokens, phones, passwords, ids,
+			users, sessions, tokens, codes, phones, passwords, ids,
 		),
 		Reset: service.NewResetPasswordService(
 			users, sessions, codes, phones, passwords,
@@ -47,6 +47,6 @@ func NewContainer(
 		PublicName:   service.NewPublicNameService(users, nameClaims),
 		Profile:      service.NewProfileService(users),
 		Verification: service.NewVerificationService(verifications),
-		Deactivate:   service.NewDeactivateService(users, sessions),
+		Deactivate:   service.NewDeactivateService(users, sessions, verifications),
 	}
 }

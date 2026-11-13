@@ -9,8 +9,9 @@ type PublicName struct {
 }
 
 var (
-	ErrEmptyPublicName   = errors.New("public name must not be empty")
-	ErrPublicNameTooLong = errors.New("public name exceeds maximum length")
+	ErrEmptyPublicName    = errors.New("public name must not be empty")
+	ErrPublicNameTooLong  = errors.New("public name exceeds maximum length")
+	ErrReservedPublicName = errors.New("public name is reserved")
 )
 
 const MaxPublicNameLen = 32
@@ -21,6 +22,9 @@ func NewPublicName(v string) (PublicName, error) {
 	}
 	if len([]rune(v)) > MaxPublicNameLen {
 		return PublicName{}, ErrPublicNameTooLong
+	}
+	if isReserved(v) {
+		return PublicName{}, ErrReservedPublicName
 	}
 	return PublicName{value: v}, nil
 }
