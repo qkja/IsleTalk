@@ -9,6 +9,30 @@
 
 尚未发布的变更记录在此。
 
+## [0.2.0] - 2026-11-14
+
+首段切片（MVP）：identity-svc、relationship-svc、message-svc 三个微服务落地，1v1 单聊核心闭环可用。
+
+### 新增
+
+- **identity-svc**：账号注册/登录/资料/会话管理；DDD 四层 + MongoDB/Redis + gRPC/mTLS/AEAD；信封接口、验证码登录、i18n、健康检查、实名处置
+- **relationship-svc**：好友申请/接受/备注/拉黑/好友列表；好友关系双向一致、拉黑单向；`CanMessage` 供消息授权
+- **message-svc**：1v1 收发消息（文本/图片/文件）、撤回（2 分钟时间窗）、已读上报、会话列表管理；消息幂等去重、会话内 seq 时序、Redis cache-aside
+- **gRPC 契约**：002 定义 identity/relationship/message 三份 proto，各服务实现并带契约测试
+- **CI 覆盖率门禁**：三个服务各自的覆盖率 job（≥80%），经 dorny/paths-filter 按服务目录变更触发
+
+### 变更
+
+- 项目宪法修订至 v2.8.0（登记 Go 工具链、新增日志分级要求）
+- `.github/workflows/ci.yml` 由治理/密钥扫描扩展为含三个覆盖率门禁
+
+### 已知限制
+
+- 附件正文对象存储选型属 002 待办，消息仅存引用 key
+- 群聊、消息转发/引用、全文检索不在首段切片
+- 服务间 mTLS 证书体系属 002 待办，当前骨架用 insecure 占位
+- 评审人数例外仍为 0（单一维护者仓库）
+
 ## [0.1.0] - 2026-11-13
 
 首个版本。建立项目治理基线与平台保护，尚无应用代码。
@@ -51,5 +75,6 @@
 - **待登记项**（`TODO(TECH_STACK)`）：具体实现语言、依赖注入方案、服务发现与配置方案、
   消息队列产品、编排与部署平台、契约测试工具、格式化/静态检查/覆盖率工具链、测试框架选型等。
 
-[未发布]: https://github.com/qkja/IsleTalk/compare/v0.1.0...HEAD
+[未发布]: https://github.com/qkja/IsleTalk/compare/v0.2.0...HEAD
+[0.2.0]: https://github.com/qkja/IsleTalk/compare/v0.1.0...v0.2.0
 [0.1.0]: https://github.com/qkja/IsleTalk/releases/tag/v0.1.0
