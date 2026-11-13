@@ -37,8 +37,27 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
+  changes:
+    name: 变更检测
+    runs-on: ubuntu-latest
+    outputs:
+      identity: ${{ steps.filter.outputs.identity }}
+      relationship: ${{ steps.filter.outputs.relationship }}
+    steps:
+      - uses: actions/checkout@v7
+      - uses: dorny/paths-filter@v3
+        id: filter
+        with:
+          filters: |
+            identity:
+              - 'services/identity/**'
+            relationship:
+              - 'services/relationship/**'
+
   identity-coverage:
     name: identity 覆盖率门禁（Go ≥80%）
+    needs: changes
+    if: needs.changes.outputs.identity == 'true'
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -70,6 +89,8 @@ jobs:
 
   relationship-coverage:
     name: relationship 覆盖率门禁（Go ≥80%）
+    needs: changes
+    if: needs.changes.outputs.relationship == 'true'
     runs-on: ubuntu-latest
     defaults:
       run:
