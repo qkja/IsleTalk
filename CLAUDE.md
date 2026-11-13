@@ -70,7 +70,7 @@ spec 目录名与 git 分支名**相互独立**，由 `.specify/feature.json`（
 
 ## 宪法：最高规则来源
 
-`.specify/memory/constitution.md`（当前 v2.6.0）与任何其他文档冲突时以宪法为准。**动手前先读它**——尤其对应 feature 涉及的组。
+`.specify/memory/constitution.md`（当前 v2.7.0）与任何其他文档冲突时以宪法为准。**动手前先读它**——尤其对应 feature 涉及的组。
 
 | 原则 | 一句话 |
 |---|---|
