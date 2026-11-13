@@ -129,9 +129,9 @@
 **Purpose**: 对外服务能力、契约测试、集成测试、覆盖率门禁
 
 - [X] T040 实现 gRPC `GetUser`/`CheckUser` RPC `api/grpc/identity_grpc.go`（对外服务能力 FR-029/030，响应不含手机号明文/身份信息）
-- [ ] T041 [P] 写契约测试 `services/identity/test/contract/identity_contract_test.go`（基于 identity.proto，5 RPC 全覆盖）
+- [X] T041 [P] 写契约测试 `services/identity/test/contract/identity_contract_test.go`（基于 identity.proto，5 RPC 全覆盖）
 - [X] T042 [P] 写集成测试 `services/identity/test/integration/`（容器化 MongoDB/Redis，覆盖仓储索引约束、会话双写、验证码一次性）
-- [ ] T043 配置 CI 覆盖率门禁 `.github/workflows/ci.yml`（go test -cover ≥80%，排除生成代码）并执行 `quickstart.md` 全部 14 个验证场景
+- [X] T043 配置 CI 覆盖率门禁 `.github/workflows/ci.yml`（go test -cover ≥80%，排除生成代码）并执行 `quickstart.md` 全部 14 个验证场景
 
 ---
 
@@ -140,7 +140,7 @@
 **Purpose**: `/speckit-analyze` 发现的 4 个覆盖缺口，追加为可执行任务。各任务标注其本应归属的阶段。
 
 - [X] T044 实现服务间 gRPC mTLS `infrastructure/auth/mtls.go`（宪法 E 组：100% 启用、校验对端证书 SAN；应在 Foundational T011 之后执行）
-- [ ] T045 实现注册/登录风控的异常行为识别 `application/service/ratelimit.go`（账号 + IP 双维度限流、刷号/暴力尝试自动阻断，对应 FR-006/SC-010；应在 US1 内执行）
+- [X] T045 实现注册/登录风控的异常行为识别 `application/service/ratelimit.go`（账号 + IP 双维度限流、刷号/暴力尝试自动阻断，对应 FR-006/SC-010；应在 US1 内执行）
 - [X] T046 实现身份信息零泄露验证 `services/identity/test/security/leak_check_test.go`（抽样断言日志/指标/追踪/错误响应/对外接口中出现次数为 0，对应 SC-007；应在 US5 后执行）
 - [X] T047 实现非界面文案国际化（验证码短信、错误提示、注销告知的 zh-CN/en-US 双语资源，对应 FR-019；应在 US4 的 T033 之后执行）
 
@@ -209,3 +209,53 @@
 - 宪法原则 II：覆盖率 ≥80% 是 CI 硬门禁，不达标阻断合并
 - 手机号/身份信息不落明文、不进日志/指标/追踪（FR-022，评审已回写）
 - 会话撤销双写（Redis/MongoDB）以 MongoDB 为准收敛（Edge Case 已回写）
+
+---
+
+## Phase 11: Convergence
+
+**Purpose**: `/speckit-converge` 发现的实现与宪法/规格的缺口，追加为可执行任务。
+
+- [X] T048 引入日志库并实现分级日志（`debug`/`info`/`warn`/`error`，JSON 结构化），每个用例入口打 `info`、错误路径打 `error` 且带完整上下文，覆盖 `application/service/` 全部 8 个用例 per 宪法 v2.8.0 D 组 (missing)
+- [X] T049 立项并实现客户端信封接口（登录/注册/找回密码的 HTTP/JSON，统一信封 `{success,data,message,meta}` 与错误码注册表），当前 api 层只有服务间 gRPC、无客户端接口 per FR-001~007 (missing)
+
+---
+
+## Phase 12: Convergence
+
+**Purpose**: `/speckit-converge` 二次收敛——核查实现相对 spec/plan/宪法后发现的剩余缺口，追加为可执行任务。
+
+- [X] T050 实现手机号验证码登录用例（辅登录路径）：验证码校验 → 定位账号 → 建会话 → 发令牌，接入 `api/http` 信封接口的 login 路由，防枚举与密码登录统一响应 per FR-003 (partial)
+- [X] T051 实现公开账号名保留词校验：`PublicName` 构造或唯一性领域服务 MUST 拒绝保留词（如 admin/system/官方），清单在 plan 锁定并对用户可见 per FR-013 (partial)
+- [X] T052 实现退出登录用例（撤销当前会话），接入客户端接口 logout 路由，与远程下线 `RevokeSession` 语义分离 per FR-005 (partial)
+- [X] T053 补 `services/identity/README.md`：职责、启动方式、依赖、配置项、健康检查地址 per 宪法 F 组「协作与文档」(missing)
+- [X] T054 暴露健康检查与就绪检查（存活/就绪/启动语义分离，HTTP `/healthz` 与 `/readyz`）per 宪法 D 组「可靠性与弹性」(missing)
+- [X] T055 论证并落地信任等级具体放宽额度数值（消息发送频率、新增好友数、创建群聊数等受限维度），写入 plan/data-model 并对用户可见 per FR-026 (partial)
+
+---
+
+## Phase 13: Convergence
+
+**Purpose**: `/speckit-converge` 三轮收敛——核查剩余合规与运行时缺口，追加为可执行任务。
+
+- [X] T056 注销时处置身份信息：`DeactivateService` 注入 `VerificationRepository`，注销 MUST 撤回/删除该用户的实名信息（按 FR-025 保留策略）per FR-025/FR-028 (partial)
+- [X] T057 错误提示接入 i18n：`errorCode` 与 `fail()` 的面向用户文案走 `i18n.Message(key, locale)`，locale 由请求携带（`Accept-Language`），回退 zh-CN per FR-019 (partial)
+- [X] T058 会话鉴权/续期路径落地：在会话验证处调用 `Touch` 更新 `last_active_at`，被撤销会话立即拒绝后续请求（`SessionService.Validate`，FR-011 运行时语义）per FR-011 (partial)
+- [X] T059 实现身份信息到期删除机制：按 `retention_until` 定期/惰性删除过期实名信息（`VerificationService.PurgeExpired` + `DeleteExpired` 仓储方法，首段切片保留期 30 天）per FR-025 (partial)
+
+---
+
+## Phase 14: Convergence
+
+**Purpose**: `/speckit-converge` 四轮收敛——核查宪法 D 组健康检查完整性、plan 待办的可调参数配置项化。
+
+- [X] T060 补 startup 启动探针（`GET /startupz`），实现宪法 D 组三种健康检查（存活/就绪/启动）语义分离 per 宪法 D 组「可靠性与弹性」(partial)
+- [X] T061 将可调参数配置项化（环境变量注入）：验证码 TTL（默认 5min）、账号名保留期（默认 90 天）、改名冷却（默认 30 天）、令牌时长（access 15min / refresh 7day），并补全改名冷却期校验（FR-014，此前仅定义 `ErrNameCooldown` 未落地）per plan 待办 1 / FR-014 (partial)
+
+---
+
+## Phase 15: Convergence
+
+**Purpose**: `/speckit-converge` 五轮收敛——核查实名撤回/注销时身份摘要的物理删除。
+
+- [X] T062 撤回/注销实名时物理删除身份摘要：`MongoVerificationRepo.Revoke` MUST 清空 `id_digest`（而非仅 `status=revoked`），符合 FR-024「撤回后 MUST 删除身份信息」per FR-024 (partial)

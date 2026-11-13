@@ -26,18 +26,19 @@ const (
 
 // User 是用户账号聚合根。
 type User struct {
-	id               valueobject.UserId
-	publicName       valueobject.PublicName
-	phoneHash        valueobject.PhoneHash
-	passwordHash     valueobject.PasswordHash
-	nickname         string
-	avatarURL        string
-	signature        string
-	visibility       Visibility
-	allowStrangerAdd bool
-	locale           string
-	status           UserStatus
-	createdAt        time.Time
+	id                     valueobject.UserId
+	publicName             valueobject.PublicName
+	phoneHash              valueobject.PhoneHash
+	passwordHash           valueobject.PasswordHash
+	nickname               string
+	avatarURL              string
+	signature              string
+	visibility             Visibility
+	allowStrangerAdd       bool
+	locale                 string
+	status                 UserStatus
+	createdAt              time.Time
+	lastPublicNameChangeAt time.Time // 上次改名时间（FR-014 冷却期）
 }
 
 var ErrInvalidStatus = errors.New("invalid user status")
@@ -125,6 +126,15 @@ func (u *User) SetAllowStrangerAdd(allow bool) { u.allowStrangerAdd = allow }
 
 // SetPublicName 修改公开账号名（FR-014）。内部 ID 不变。
 func (u *User) SetPublicName(n valueobject.PublicName) { u.publicName = n }
+
+// MarkPublicNameChanged 记录改名时间（FR-014 冷却期起点）。
+func (u *User) MarkPublicNameChanged() { u.lastPublicNameChangeAt = time.Now().UTC() }
+
+// LastPublicNameChangeAt 返回上次改名时间（零值表示从未改名）。
+func (u User) LastPublicNameChangeAt() time.Time { return u.lastPublicNameChangeAt }
+
+// RestoreLastPublicNameChangeAt 由仓储层恢复持久化的改名时间。
+func (u *User) RestoreLastPublicNameChangeAt(t time.Time) { u.lastPublicNameChangeAt = t }
 
 // SetLocale 设置界面语言（FR-019）。
 func (u *User) SetLocale(locale string) { u.locale = locale }

@@ -82,3 +82,57 @@ func TestPublicNameChange(t *testing.T) {
 		t.Fatal("internal ID must not change")
 	}
 }
+
+func TestPublicNameSet(t *testing.T) {
+	ctx := context.Background()
+	users := newMemUserRepo()
+	claims := newMemNameClaimRepo()
+	svc := NewPublicNameService(users, claims)
+
+	u, _ := newUserForTest(t, "138", "secret", "temp")
+	users.users[u.PhoneHash().String()] = u
+
+	got, err := svc.Set(ctx, u.ID(), "alice")
+	if err != nil {
+		t.Fatalf("Set err: %v", err)
+	}
+	if got.PublicName().String() != "alice" {
+		t.Fatalf("public name = %q", got.PublicName())
+	}
+}
+
+func TestPublicNameSetUnavailable(t *testing.T) {
+	ctx := context.Background()
+	users := newMemUserRepo()
+	claims := newMemNameClaimRepo()
+	svc := NewPublicNameService(users, claims)
+
+	u, _ := newUserForTest(t, "138", "secret", "temp")
+	users.users[u.PhoneHash().String()] = u
+	// 占用 alice
+	claims.Claim(ctx, mustName(t, "alice"), idVal(t, "other"))
+
+	if _, err := svc.Set(ctx, u.ID(), "alice"); err != ErrNameUnavailable {
+		t.Fatalf("Set err = %v, want ErrNameUnavailable", err)
+	}
+}
+
+func TestPublicNameChangeCooldown(t *testing.T) {
+	ctx := context.Background()
+	users := newMemUserRepo()
+	claims := newMemNameClaimRepo()
+	svc := NewPublicNameService(users, claims)
+
+	u, _ := newUserForTest(t, "138", "secret", "alice")
+	users.users[u.PhoneHash().String()] = u
+	claims.Claim(ctx, mustName(t, "alice"), u.ID())
+
+	// 首次改名成功
+	if _, err := svc.Change(ctx, u.ID(), "bob"); err != nil {
+		t.Fatalf("first Change err: %v", err)
+	}
+	// 立即再次改名应被冷却期拒绝（FR-014）
+	if _, err := svc.Change(ctx, u.ID(), "charlie"); err != ErrNameCooldown {
+		t.Fatalf("second Change err = %v, want ErrNameCooldown", err)
+	}
+}

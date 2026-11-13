@@ -55,11 +55,24 @@
 - 索引：`user_id` 唯一。
 - 约束：派生自 Verification；撤回实名 MUST 同步降级并回落额度（FR-024）。
 
+**额度数值**（FR-026，对用户可见；首段切片按「已提交」授予 level=1，不基于真实验证）：
+
+| 受限维度 | 未实名（level 0） | 已实名（level 1） | 执行方 |
+|---|---|---|---|
+| 消息发送频率 | 30 条/分钟 | 60 条/分钟 | message-svc |
+| 新增好友数 | 20 个/天 | 40 个/天 | relationship-svc |
+| 创建群聊数 | 5 个/天 | 10 个/天 | group-svc |
+
+撤回实名后 `level` 归零、`quota_overrides` 清空，各消费服务按 level 0 回落（FR-024）。
+
 ## 账号名占用（`identity.name_claims`）
 
 - 字段：`name`（唯一）、`owner_user_id`、`released_at`、`reserved_until`（保留期，FR-015）。
 - 索引：`name` 唯一（含保留期条目，使旧名保留期内仍占位）。
 - 状态机：`occupied → reserved（保留期，默认 90 天）→ available`；改名先写新 claim、旧名转 reserved。
+- 保留词（FR-013，锁定于 `domain/valueobject/reserved_words.go`）：`admin`、`administrator`、`root`、
+  `system`、`moderator`、`official`、`support`、`help`、`service`、`staff`、`bot`、`isletalk`、
+  `官方`、`管理员`、`系统`、`客服`、`机器人`；英文大小写不敏感。
 
 ## 跨服务关系
 

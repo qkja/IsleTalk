@@ -13,6 +13,7 @@ import (
 
 	"isletalk/identity/domain/port"
 	"isletalk/identity/domain/valueobject"
+	"isletalk/identity/infrastructure/config"
 )
 
 // TokenIssuer 用 HMAC 签发的简单令牌（access ≤15min、refresh ≤7day）。
@@ -41,11 +42,13 @@ var (
 )
 
 func (t TokenIssuer) Issue(_ context.Context, userID valueobject.UserId) (port.TokenPair, error) {
-	access, err := t.sign(userID, "access", 15*time.Minute)
+	accessTTL := config.Duration("IDENTITY_TOKEN_ACCESS_TTL", 15*time.Minute)
+	refreshTTL := config.Duration("IDENTITY_TOKEN_REFRESH_TTL", 7*24*time.Hour)
+	access, err := t.sign(userID, "access", accessTTL)
 	if err != nil {
 		return port.TokenPair{}, err
 	}
-	refresh, err := t.sign(userID, "refresh", 7*24*time.Hour)
+	refresh, err := t.sign(userID, "refresh", refreshTTL)
 	if err != nil {
 		return port.TokenPair{}, err
 	}

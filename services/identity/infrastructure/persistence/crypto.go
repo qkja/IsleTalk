@@ -19,7 +19,7 @@ type IDCipher struct {
 func NewIDCipher() (*IDCipher, error) {
 	key := os.Getenv("IDENTITY_ID_ENC_KEY")
 	if key == "" {
-		key = "dev-insecure-32-byte-key-0000000000" // 仅本地开发占位（32 字节）
+		return nil, errors.New("IDENTITY_ID_ENC_KEY must be set")
 	}
 	if len(key) != 32 {
 		return nil, errors.New("IDENTITY_ID_ENC_KEY must be 32 bytes")

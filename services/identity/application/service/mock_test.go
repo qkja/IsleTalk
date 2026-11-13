@@ -224,6 +224,18 @@ func (m *memVerificationRepo) Revoke(_ context.Context, uid valueobject.UserId) 
 	}
 	return nil
 }
+func (m *memVerificationRepo) DeleteExpired(_ context.Context, before time.Time) (int64, error) {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	var n int64
+	for k, v := range m.data {
+		if v.RetentionUntil().Before(before) {
+			delete(m.data, k)
+			n++
+		}
+	}
+	return n, nil
+}
 
 // newUserForTest 创建一个已设密码的预置用户。
 func newUserForTest(t *testing.T, phone, password, name string) (entity.User, error) {
@@ -241,4 +253,79 @@ func newUserForTest(t *testing.T, phone, password, name string) (entity.User, er
 	phash, _ := valueobject.NewPasswordHash("hash:" + password)
 	u.SetPassword(phash)
 	return u, nil
+}
+
+// failingUserRepo 所有方法返回错误，用于测错误路径。
+type failingUserRepo struct{ err error }
+
+func (f failingUserRepo) Create(context.Context, entity.User) (entity.User, error) {
+	return entity.User{}, f.err
+}
+func (f failingUserRepo) FindByID(context.Context, valueobject.UserId) (entity.User, error) {
+	return entity.User{}, f.err
+}
+func (f failingUserRepo) FindByPhoneHash(context.Context, valueobject.PhoneHash) (entity.User, error) {
+	return entity.User{}, f.err
+}
+func (f failingUserRepo) FindByPublicName(context.Context, valueobject.PublicName) (entity.User, error) {
+	return entity.User{}, f.err
+}
+func (f failingUserRepo) Update(context.Context, entity.User) error { return f.err }
+
+// failingSessionRepo 所有方法返回错误。
+type failingSessionRepo struct{ err error }
+
+func (f failingSessionRepo) Create(context.Context, entity.Session) (entity.Session, error) {
+	return entity.Session{}, f.err
+}
+func (f failingSessionRepo) FindByID(context.Context, string) (entity.Session, error) {
+	return entity.Session{}, f.err
+}
+func (f failingSessionRepo) ListByUser(context.Context, valueobject.UserId) ([]entity.Session, error) {
+	return nil, f.err
+}
+func (f failingSessionRepo) Revoke(context.Context, string) error                      { return f.err }
+func (f failingSessionRepo) RevokeAllByUser(context.Context, valueobject.UserId) error { return f.err }
+func (f failingSessionRepo) Touch(context.Context, string) error                       { return f.err }
+
+// failingTokens Issue 返回错误。
+type failingTokens struct{ err error }
+
+func (f failingTokens) Issue(context.Context, valueobject.UserId) (port.TokenPair, error) {
+	return port.TokenPair{}, f.err
+}
+func (f failingTokens) Verify(context.Context, string) (valueobject.UserId, error) {
+	return valueobject.UserId{}, f.err
+}
+func (f failingTokens) Revoke(context.Context, valueobject.UserId) error { return f.err }
+
+// failingCreateRepo：FindByPhoneHash 返回 NotFound（让注册继续），Create 返回错误。
+type failingCreateRepo struct{ err error }
+
+func (f failingCreateRepo) Create(context.Context, entity.User) (entity.User, error) {
+	return entity.User{}, f.err
+}
+func (f failingCreateRepo) FindByID(context.Context, valueobject.UserId) (entity.User, error) {
+	return entity.User{}, port.ErrNotFound
+}
+func (f failingCreateRepo) FindByPhoneHash(context.Context, valueobject.PhoneHash) (entity.User, error) {
+	return entity.User{}, port.ErrNotFound
+}
+func (f failingCreateRepo) FindByPublicName(context.Context, valueobject.PublicName) (entity.User, error) {
+	return entity.User{}, port.ErrNotFound
+}
+func (f failingCreateRepo) Update(context.Context, entity.User) error { return f.err }
+
+// failingVerificationRepo 所有方法返回错误。
+type failingVerificationRepo struct{ err error }
+
+func (f failingVerificationRepo) Save(context.Context, entity.Verification) (entity.Verification, error) {
+	return entity.Verification{}, f.err
+}
+func (f failingVerificationRepo) FindByUser(context.Context, valueobject.UserId) (entity.Verification, error) {
+	return entity.Verification{}, f.err
+}
+func (f failingVerificationRepo) Revoke(context.Context, valueobject.UserId) error { return f.err }
+func (f failingVerificationRepo) DeleteExpired(context.Context, time.Time) (int64, error) {
+	return 0, f.err
 }

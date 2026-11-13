@@ -74,3 +74,23 @@ func TestProfileSetLocale(t *testing.T) {
 		t.Fatalf("locale = %q, want en-US", got.Locale())
 	}
 }
+
+func TestProfileFindByIDNotFound(t *testing.T) {
+	ctx := context.Background()
+	users := newMemUserRepo() // 空，FindByID 返回 ErrNotFound
+	svc := NewProfileService(users)
+
+	uid := idVal(t, "u-nonexistent")
+	if _, err := svc.UpdateProfile(ctx, uid, "x", "", ""); err == nil {
+		t.Fatal("UpdateProfile should error for nonexistent user")
+	}
+	if _, err := svc.SetVisibility(ctx, uid, entity.VisibilityPrivate); err == nil {
+		t.Fatal("SetVisibility should error for nonexistent user")
+	}
+	if _, err := svc.SetAllowStrangerAdd(ctx, uid, false); err == nil {
+		t.Fatal("SetAllowStrangerAdd should error for nonexistent user")
+	}
+	if _, err := svc.SetLocale(ctx, uid, "en-US"); err == nil {
+		t.Fatal("SetLocale should error for nonexistent user")
+	}
+}

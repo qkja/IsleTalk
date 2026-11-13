@@ -7,6 +7,7 @@ import (
 	"github.com/redis/go-redis/v9"
 
 	"isletalk/identity/domain/valueobject"
+	"isletalk/identity/infrastructure/config"
 )
 
 // RedisCodeStore 实现 VerificationCodeStore（T010/R-5）。
@@ -18,7 +19,7 @@ type RedisCodeStore struct {
 
 func NewRedisCodeStore(client *redis.Client, ttl time.Duration) *RedisCodeStore {
 	if ttl <= 0 {
-		ttl = 5 * time.Minute
+		ttl = config.Duration("IDENTITY_VERIFY_CODE_TTL", 5*time.Minute)
 	}
 	return &RedisCodeStore{client: client, ttl: ttl}
 }

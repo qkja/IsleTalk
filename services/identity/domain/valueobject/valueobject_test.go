@@ -58,3 +58,27 @@ func TestNewPasswordHash(t *testing.T) {
 		t.Fatal("expected error for empty password hash")
 	}
 }
+
+func TestUserIdEqual(t *testing.T) {
+	a, _ := NewUserId("id-1")
+	b, _ := NewUserId("id-1")
+	c, _ := NewUserId("id-2")
+	if !a.Equal(b) {
+		t.Fatal("same value should be equal")
+	}
+	if a.Equal(c) {
+		t.Fatal("different value should not be equal")
+	}
+}
+
+func TestNewPublicNameReserved(t *testing.T) {
+	for _, w := range []string{"admin", "Admin", "system", "isletalk", "官方", "管理员"} {
+		if _, err := NewPublicName(w); err != ErrReservedPublicName {
+			t.Fatalf("NewPublicName(%q) err = %v, want ErrReservedPublicName", w, err)
+		}
+	}
+	// 非保留词正常构造
+	if _, err := NewPublicName("alice"); err != nil {
+		t.Fatalf("NewPublicName(alice) err = %v", err)
+	}
+}

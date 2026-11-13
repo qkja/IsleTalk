@@ -62,8 +62,11 @@ func (v Verification) ConsentAt() time.Time { return v.consentAt }
 // RetentionUntil 返回保留期限。
 func (v Verification) RetentionUntil() time.Time { return v.retentionUntil }
 
-// Revoke 撤回实名（FR-024）：状态置 revoked，身份摘要应随之删除。
-func (v *Verification) Revoke() { v.status = VerificationRevoked }
+// Revoke 撤回实名（FR-024）：状态置 revoked，删除身份摘要。
+func (v *Verification) Revoke() {
+	v.status = VerificationRevoked
+	v.idDigest = ""
+}
 
 // IsSubmitted 判断是否已提交且未撤回。
 func (v Verification) IsSubmitted() bool { return v.status == VerificationSubmitted }
